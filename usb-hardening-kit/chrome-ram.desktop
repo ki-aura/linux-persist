@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Chrome (No Disk Writes)
+Comment=Chrome optimized for persistent USB (cache in RAM only)
+Exec=google-chrome --disk-cache-size=0 --media-cache-size=0 --disable-background-networking --disable-component-update --disable-crash-reporter --disable-logging --no-default-browser-check --window-position=10,10
+Terminal=false
+Type=Application
+Icon=google-chrome
+Categories=Network;WebBrowser;

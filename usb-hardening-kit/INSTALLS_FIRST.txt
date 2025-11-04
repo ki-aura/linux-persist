@@ -1,0 +1,3 @@
+sudo apt install util-linux
+sudo apt install -y zram-tools
+sudo apt install iotop

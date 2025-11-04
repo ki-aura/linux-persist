@@ -1,0 +1,20 @@
+─[user@parrot]─[/media/user/kubuntu_2510/home/xub]
+└──╼ $grep "apt install" .zsh_history 
+sudo apt install lib64ncurses-dev lib64ncurses6 
+sudo apt install libcdk5t64
+sudo apt install smartmontools\
+sudo apt install grub-customizer\
+sudo apt install ufw gufw
+sudo apt install mkusb mkusb-nox dus\
+sudo apt install -y cryptsetup\
+: 1762263820:0;sudo apt install tree
+: 1762269678:0;sudo apt install sha256
+: 1762284572:0;sudo apt install zip
+┌─[user@parrot]─[/media/user/kubuntu_2510/home/xub]
+└──╼ $grep "apt install" .bash_history 
+sudo apt install zsh
+sudo apt install kio-gdrive
+sudo apt install rclone
+sudo apt update && sudo apt install -y autojump  dos2unix gh htop lynx nano zsh-autosuggestions zsh-history-substring-search zsh-syntax-highlighting git build-essentials curl libssl-dev
+sudo apt update && sudo apt install -y autojump  dos2unix gh htop lynx nano zsh-autosuggestions zsh-syntax-highlighting git build-essential curl libssl-dev
+┌
