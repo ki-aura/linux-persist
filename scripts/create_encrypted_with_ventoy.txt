@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# REFERENCE NOTES: Ventoy + Kali LUKS Encrypted Persistence on /dev/sda
+# WARNING: This DESTROYS all data on /dev/sda. Triple-check device before using.
+# Assumptions:
+#   - USB is /dev/sda
+#   - Ventoy tarball is extracted in ~/Downloads/ventoy-1.1.07
+#   - Kali ISO is in ~/Downloads/ as kali-linux-*-live-amd64.iso
+
+###############################################################################
+# STEP 1 – Install Ventoy on /dev/sda with reserved space at the end
+###############################################################################
+
+cd ~/Downloads/ventoy-1.1.07
+
+# Check Ventoy version
+sudo ./Ventoy2Disk.sh -V
+
+# Sanity check: make sure /dev/sda is the USB
+lsblk
+
+# Install Ventoy to /dev/sda and reserve ~80 GB at the end of the disk
+# -r 80000 = leave 80,000 MB (~80 GB) unallocated after the Ventoy partitions
+# This will WIPE /dev/sda
+sudo ./Ventoy2Disk.sh -i -r 80000 /dev/sda
+
+# Confirm partition layout (expect sda1, sda2, and free space at the end)
+lsblk /dev/sda
+
+###############################################################################
+# STEP 2 – Create /dev/sda3 in the reserved (unallocated) space
+###############################################################################
+# NOTE: fdisk is interactive; sequence here is for reference.
+
+sudo fdisk /dev/sda <<'EOF'
+p          # print current partition table (optional)
+n          # new partition
+p          # primary
+3          # partition number 3
+           # accept default first sector (press Enter)
+           # accept default last sector to use all remaining space (press Enter)
+p          # print partition table (optional)
+w          # write changes and exit
+EOF
+
+# Check that /dev/sda3 now exists and fills the remaining space
+lsblk /dev/sda
+
+###############################################################################
+# STEP 3 – Create LUKS container on /dev/sda3 and ext4 filesystem labeled 'persistence'
+###############################################################################
+
+# Make sure cryptsetup is installed
+sudo apt update
+sudo apt install -y cryptsetup
+
+# Initialize /dev/sda3 as a LUKS container (DESTRUCTIVE on sda3)
+sudo cryptsetup luksFormat /dev/sda3
+# (You will need to type YES in uppercase and then set a passphrase)
+
+# Open the LUKS container as /dev/mapper/kali_persistence
+sudo cryptsetup open /dev/sda3 kali_persistence
+
+# Optional: confirm mapper device exists
+lsblk /dev/sda
+lsblk /dev/mapper/kali_persistence
+
+# Create ext4 filesystem inside the LUKS container, labeled 'persistence'
+sudo mkfs.ext4 -L persistence /dev/mapper/kali_persistence
+
+# Create a mount point for the persistence filesystem
+sudo mkdir -p /mnt/kali_persistence
+
+# Mount the new filesystem
+sudo mount /dev/mapper/kali_persistence /mnt/kali_persistence
+
+# Create the persistence.conf file for full union persistence
+echo "/ union" | sudo tee /mnt/kali_persistence/persistence.conf
+
+# Flush writes, unmount, and close the LUKS container
+sync
+sudo umount /mnt/kali_persistence
+sudo cryptsetup close kali_persistence
+
+# Check filesystems and types
+lsblk -f /dev/sda
+
+###############################################################################
+# STEP 4 – Copy the Kali Live ISO onto the Ventoy data partition (/dev/sda1)
+###############################################################################
+
+# Mount the Ventoy data partition
+sudo mkdir -p /mnt/ventoy
+sudo mount /dev/sda1 /mnt/ventoy
+
+# Confirm contents (Ventoy files plus whatever is already there)
+ls /mnt/ventoy
+
+# Adjust the ISO filename as appropriate:
+# e.g. kali-linux-2024.3-live-amd64.iso
+ISO_PATH=~/Downloads/kali-linux-2024.3-live-amd64.iso
+
+# Copy the Kali ISO to the Ventoy partition
+cp "$ISO_PATH" /mnt/ventoy/
+
+# Flush writes and list to confirm the ISO is present
+sync
+ls -lh /mnt/ventoy
+
+# Unmount Ventoy partition
+sudo umount /mnt/ventoy
+
+###############################################################################
+# At this point:
+#  - Ventoy is installed on /dev/sda
+#  - /dev/sda1: Ventoy data partition (contains the Kali live ISO)
+#  - /dev/sda2: Ventoy EFI partition
+#  - /dev/sda3: LUKS container with ext4 filesystem labeled 'persistence'
+#               and / union in persistence.conf
+# Next steps are to boot from this USB via Ventoy and choose the Kali
+# "encrypted persistence" boot entry, then verify that persistence works.
+###############################################################################

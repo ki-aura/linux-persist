@@ -1,0 +1,71 @@
+I want your help to build a **single 128 GB USB** that uses **Ventoy** as the front-end bootloader and runs **Kali Linux with encrypted persistence** behind it.
+
+Environment and starting point:
+
+- Host OS: Ubuntu (running from the internal disk, not live)
+- I have:
+  - A blank 128 GB USB stick available to be completely wiped
+  - The Kali Linux *live* ISO already downloaded (e.g. kali-linux-*-live-amd64.iso)
+  - The Ventoy tarball already extracted, and I can run `Ventoy2Disk.sh` on Ubuntu
+- I want the final USB to:
+  - Boot via Ventoy on as many machines as possible (including Secure Boot machines where I’m allowed to enroll Ventoy’s key / MOK)
+  - Contain the Kali live ISO on the Ventoy data partition
+  - Have a **LUKS-encrypted persistence partition** for Kali on the same USB (ext4 inside, with `persistence.conf` configured correctly)
+  - NOT break existing Windows/BitLocker setups on machines where I boot it (I understand I may have to temporarily suspend BitLocker and/or enroll keys, but I don’t want to trash their bootloaders)
+
+Important constraints / style:
+
+1. **High-level overview first**
+   - Before you give me any commands, please give me a high-level summary of the entire process, in order. Something like:
+     1. Use Ventoy2Disk with `-r` to install Ventoy and leave space at the end of the disk.
+     2. Partition and create a LUKS container in the reserved space.
+     3. Create an ext4 filesystem inside, labeled `persistence`, with a correct `persistence.conf`.
+     4. Copy the Kali ISO onto the Ventoy data partition.
+     5. Boot from the USB via Ventoy, choose the Kali ISO and ensure the correct kernel parameters for encrypted persistence.
+     6. Test that persistence actually works.
+   - That summary should be clear enough that I can mentally see the whole journey, but **no detailed commands yet**.
+
+2. **Then switch to strict step-by-step mode**
+   - After the high-level summary, I want you to guide me like this:
+     - Give me **exactly one step** at a time, with the exact commands and what I should expect to see.
+     - I will run that step on my Ubuntu laptop and report the output / result.
+     - Only after I confirm a step is done should you give me the next step.
+   - Do **not** jump ahead, and do not combine multiple risky operations (like partitioning + formatting) into one “mega step”.
+
+3. **Disk safety & identification**
+    - the USB will ALWAYS be /dev/sda so ensure that all commands use this device path
+
+4. **Ventoy specifics**
+   - I want to use `Ventoy2Disk.sh` with the `-r` option so that Ventoy:
+     - Creates its normal partitions (VTOYEFI + main data partition)
+     - Leaves **unallocated space at the end of the USB** for Kali’s encrypted persistence partition
+   - You should help me choose a **sensible size** to reserve for encrypted persistence (for example, something like 80 GB on a 128 GB stick, but I’m open to your recommendation).
+
+5. **Kali encrypted persistence specifics**
+   - I want the persistence to be done in the “Debian live-boot” style:
+     - A LUKS-encrypted partition on the USB
+     - Inside: an ext4 filesystem labeled `persistence`
+     - A `persistence.conf` file that sets `/ union`
+   - I want you to:
+     - Show me how to create the LUKS container and filesystem from Ubuntu.
+     - Show me how to mount it, create `persistence.conf`, and unmount/close it.
+   - Then, on the Kali side (booted from the ISO via Ventoy), help ensure that:
+     - The correct kernel parameters are used so Kali recognizes the encrypted persistence partition (e.g. `persistence persistence-encryption=luks persistence-label=persistence` or whatever Kali’s current recommended syntax is).
+     - We verify persistence by making a simple change (e.g. creating a file) and rebooting.
+
+6. **Accuracy & sources**
+   - Please **base the key parts of your sequence** (especially the Ventoy layout and Kali persistence method) on up-to-date information from:
+     - Official Ventoy documentation
+     - Official Kali documentation (or Debian live-boot docs, where appropriate)
+   - If there are known caveats or gotchas (e.g. specific versions of Kali live where encrypted persistence via Ventoy is known to have issues), call them out.
+
+7. **Assumptions you can safely make**
+   - You can assume:
+     - I am comfortable running commands as root with `sudo`.
+     - I can read `lsblk`, `fdisk -l`, `parted -l` output and paste it back to you.
+     - I’m okay with wiping the entire 128 GB USB stick.
+
+Please start by:
+1. Confirming the goal as you understand it (in your own words, not repeating mine verbatim).
+2. Giving me the high-level summary of the whole process (no commands yet).
+3. Then wait for me to say “OK, let’s start the step-by-step” before giving me the first concrete command.

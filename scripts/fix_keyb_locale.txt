@@ -1,0 +1,4 @@
+sudo dpkg-reconfigure keyboard-configuration
+
+sudo dpkg-reconfigure locales
+

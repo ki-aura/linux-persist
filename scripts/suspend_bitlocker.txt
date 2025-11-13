@@ -1,0 +1,18 @@
+
+
+FIND KEY
+From Powershell
+
+Get-BitLockerVolume
+
+(Get-BitLockerVolume -MountPoint C).KeyProtector
+
+
+SUSPEND
+From CMD (admin)
+
+manage-bde -status
+
+manage-bde -protectors -disable C:
+
+manage-bde -protectors -enable C:
