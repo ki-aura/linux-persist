@@ -1,0 +1,18 @@
+#!/bin/zsh
+#setopt extended_glob
+setopt glob_dots
+
+# lsctime.sh - list files with ctime, newest at top
+
+# Loop over all files in current directory
+for f in *; do
+    [[ -f $f ]] || continue
+
+    # Get ctime as epoch seconds
+    ctime_epoch=$(stat -f '%c' "$f")
+
+    # Print human-readable ctime and filename
+    echo "$(date -r $ctime_epoch '+%Y%m%d%H%M   [%b %d %H:%M]') $f"
+done | sort -nr | cut -c 16-400
+
+

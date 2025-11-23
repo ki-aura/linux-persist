@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# findex - find files in home directory while excluding large standard dirs
+# Usage: findexclude PATTERN [COMMAND ...]
+# Example: findex "*.jpg"           # runs 'ls -lh' on results
+#          findex "*.pdf" wc -l    # counts matching PDF files
+
+# Directories to exclude
+EXCLUDE_DIRS=(~/Movies ~/Cloud-Drive ~/Desktop ~/Downloads ~/IDrive\ Downloads ~/Music ~/My\ Drive ~/Library ~/Documents ~/Google\ Drive ~/Pictures ~/Public ~/Virtual\ Machines.localized ~/.Trash ~/.cache)
+
+# Default command if none provided
+DEFAULT_CMD=(ls -lh)
+
+# Check arguments
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 PATTERN [COMMAND ...]"
+    exit 1
+fi
+
+PATTERN="$1"
+shift
+CMD=("$@")
+if [ ${#CMD[@]} -eq 0 ]; then
+    CMD=("${DEFAULT_CMD[@]}")
+fi
+
+# Build prune expression
+PRUNE_EXPR=""
+for d in "${EXCLUDE_DIRS[@]}"; do
+    PRUNE_EXPR="$PRUNE_EXPR -path \"$d\" -prune -o"
+done
+
+# Run find safely with -print0 and xargs -0
+eval "find ~/ $PRUNE_EXPR -type f -name \"$PATTERN\" -print0" | xargs -0 "${CMD[@]}"

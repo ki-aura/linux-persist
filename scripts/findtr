@@ -1,0 +1,130 @@
+#!/bin/zsh
+
+find . \( -name .git -o -name "*.dSYM" -o -name xcode \) -prune \
+-o \( \
+    -type d -print \
+    -o -type f \( -name "*.c" -o -name "*.h" \) -exec printf 'FILE: %s\n' {} \; \
+\) | \
+sed -n -e '/^FILE: / { s|^FILE: ||; s|[^/]*/|│  |g; p; }' \
+       -e '/^FILE: /! { p; }'
+
+
+# ==============================================================================
+# SED (Stream Editor) CHEAT SHEET: Search, Replace, and Common Options
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CORE SYNTAX AND OPTIONS
+# ------------------------------------------------------------------------------
+
+# General format:
+# sed [OPTIONS] 'ADDRESS /COMMAND/FLAGS' [FILE(s)]
+
+# -i: Edit files in place (modifies the original file).
+# -i.bak: Edits in place and creates a backup file with the .bak extension.
+# -n: Suppresses automatic printing of pattern space (needed for selective printing).
+# -e: Allows multiple commands to be specified on the command line.
+
+# ------------------------------------------------------------------------------
+# 2. SEARCH AND REPLACE (The 's' Command)
+# ------------------------------------------------------------------------------
+
+# The basic substitution syntax is: 's/PATTERN/REPLACEMENT/FLAGS'
+
+# Example 1: Basic global substitution (change all 'foo' to 'bar')
+# sed 's/foo/bar/g' filename
+
+# Example 2: Substitution only on the first match on each line
+# sed 's/foo/bar/' filename
+
+# Example 3: Case-insensitive substitution (using the 'i' flag)
+# sed 's/FOO/bar/gi' filename
+
+# Example 4: Using a different delimiter (useful when the pattern contains '/')
+# sed 's|/usr/local|/opt|g' filename
+# (Other common delimiters are #, :, and @)
+
+# Example 5: Limiting substitution to a specific match on a line (the 3rd match)
+# sed 's/foo/bar/3' filename
+
+# Example -----------------------------------------------------------------------
+# 3. BACK-REFERENCING (Capturing and Reusing Text)
+# ------------------------------------------------------------------------------
+
+# Use \( ... \) to capture a pattern, and \1, \2, etc., in the replacement.
+
+# Example 6: Swap the order of the first two words on a line
+# sed 's/\([A-Za-z]*\) \([A-Za-z]*\)/\2 \1/' filename
+# Input line: "Hello World" -> Output: "World Hello"
+
+# Example 7: Wrap a captured word in brackets, keeping existing text
+# sed 's/ERROR: \(.*\)/[Log] ERROR: \1/' filename
+# Input line: "ERROR: Disk full" -> Output: "[Log] ERROR: Disk full"
+
+# Example 8: Reusing the entire matched pattern using the '&' character
+# sed 's/WARNING/\[&\]/' filename
+# Input line: "WARNING: Low battery" -> Output: "[WARNING]: Low battery"
+
+# ------------------------------------------------------------------------------
+# 4. ADDRESSING (Limiting the Command Scope)
+# ------------------------------------------------------------------------------
+
+# Commands can be limited to specific lines using addresses (numbers or patterns).
+
+# Single Line Number: Apply command only to line 5
+# sed '5s/old/new/' filename
+
+# Range of Lines (5 to 10):
+# sed '5,10s/old/new/g' filename
+
+# From a pattern match to end-of-file ($):
+# sed '/START_LOG/,$/d' filename
+# (Deletes lines starting from the line matching 'START_LOG' to the end)
+
+# From line 5 to the line matching 'END_BLOCK':
+# sed '5,/END_BLOCK/s/^# //' filename
+# (Uncomments lines in the specified range)
+
+# Using ! for Negation (Apply command to lines that DO NOT match the address)
+# sed '/^#/!d' filename
+# (Deletes all lines that DO NOT start with #, effectively showing only comments)
+
+# ------------------------------------------------------------------------------
+# 5. COMMON COMMANDS (Beyond Search/Replace)
+# ------------------------------------------------------------------------------
+
+# d (Delete): Deletes the current line (prevents it from being printed).
+# Example 9: Delete empty lines
+# sed '/^$/d' filename
+
+# Example 10: Delete lines containing 'temp' (case-insensitive)
+# sed '/temp/Id' filename
+
+# p (Print): Prints the current line (often used with -n to print selectively).
+# Example 11: Print only lines containing 'Config'
+# sed -n '/Config/p' filename
+
+# a (Append): Appends text AFTER the addressed line.
+# Example 12: Add a newline after every line matching 'BEGIN'
+# sed '/BEGIN/a\--- New Section ---' filename
+
+# i (Insert): Inserts text BEFORE the addressed line.
+# Example 13: Insert a header before line 1
+# sed '1i\Project Header' filename
+
+# c (Change): Replaces the addressed line with new text.
+# Example 14: Replace all lines matching 'v1.0' with a new version string
+# sed '/v1.0/c\Version 2.0 (Stable)' filename
+
+# ------------------------------------------------------------------------------
+# 6. GNU EXTENSIONS (Often available in POSIX environments like Linux)
+# ------------------------------------------------------------------------------
+
+# I: Case-insensitive address matching (part of the pattern search).
+# Example 15: Delete lines matching 'error' regardless of case
+# sed '/error/Id' filename
+
+# s///gI: Case-insensitive substitution using the 'I' flag instead of 'i'.
+# Note: On some systems, the 'i' flag on the substitution command works for case-
+# insensitive search AND replace, as demonstrated in Example 3.
+# ==============================================================================

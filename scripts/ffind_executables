@@ -1,0 +1,183 @@
+#!/bin/zsh
+
+# ------------------------------------------------------------------------------
+# User-Editable Variables
+# ------------------------------------------------------------------------------
+
+# 1. Search Root Directory
+# The directory where the find command will begin its search.
+SEARCH_ROOT="."
+
+# 2. File Name Patterns (Globbing)
+# Files matching these patterns will be included.
+SEARCH_FILES=("*")
+
+# 3. Excluded File Names
+# Files matching these names will be explicitly excluded.
+EXCLUDE_FILES=()
+
+# 4. Excluded Directory Names
+# Directories with these names will be excluded from the search,
+# regardless of where they appear in the directory tree.
+EXCLUDE_DIRS=(
+    Movies Cloud-Drive Desktop Downloads "IDrive Downloads" Music "My Drive"
+    Library Documents "Google Drive" Pictures Public "Virtual Machines.localized"
+    .Trash .cache .git xcode "*dSYM*" .vscode old_projects
+)
+
+# 5. Output Modifiers (Set to 'y' or 'Y' to enable)
+# The default for all is 'n' (or anything not 'y'/'Y')
+ONLY_EXECUTABLES="y"  # Only show files with execute permission set for the owner
+ONLY_OWNED_BY_ME="n"  # Only show files owned by the current user
+NOT_OWNED_BY_ME="n"   # Only show files NOT owned by the current user
+                      # (Note: NOT_OWNED_BY_ME takes precedence over ONLY_OWNED_BY_ME)
+
+# 6. Action to perform on matched files (executed by find)
+# Examples:
+FIND_EXEC=(-ls)
+#FIND_EXEC=(-exec printf 'FILE: %s\n' {} \;)
+
+# 7. Optional post-processing command (runs after find)
+# Example: POSTPROCESS_CMD1=(sed -n -e '/^FILE: / { s|^FILE: ||; s|[^/]*/|│  |g; p; }' -e '/^FILE: /! { p; }')
+# To disable, set to: POSTPROCESS_CMD=()
+POSTPROCESS_CMD1=()
+
+# 8. Include directories that contain matched files (set to 'y' or 'Y' to enable)
+INCLUDE_DIRS="n"
+
+# ------------------------------------------------------------------------------
+# Script Logic
+# ------------------------------------------------------------------------------
+
+# --- 1. Build the Directory Exclusion Logic ---
+# The logic uses -name, -prune, and -o to build an efficient exclusion statement.
+# ( -name D1 -prune ) -o ( -name D2 -prune ) ... -o -print
+# --- 1. Build the Directory Exclusion Logic ---
+# The logic uses -name, -prune, and -o to build an efficient exclusion statement.
+# ( -name D1 -prune ) -o ( -name D2 -prune ) ... -o -print
+DIR_EXCLUDE_CMD=()
+if (( ${#EXCLUDE_DIRS[@]} > 0 )); then
+    
+    local PRUNE_EXPRESSION=()
+    
+    # 1. Build the list of excluded directory names: (-name D1 -o -name D2 ...)
+    local first_name=1
+    for dir in "${EXCLUDE_DIRS[@]}"; do
+        if (( ! first_name )); then
+            # Add -o (OR) before every name after the first one
+            PRUNE_EXPRESSION+=("-o")
+        fi
+        # We must use -path or the full path of the directory is not matched for pruning
+        PRUNE_EXPRESSION+=("-name" "$dir")
+        first_name=0
+    done
+    
+    # 2. Assemble the full command: -type d ( -name D1 -o -name D2 ... ) -prune -o
+    # NOTE: The -type d check is crucial and MUST be outside the parentheses for this pattern.
+    DIR_EXCLUDE_CMD=(
+        "-type" "d" 
+        "(" ${PRUNE_EXPRESSION[@]} ")" 
+        "-prune" 
+        "-o"
+    )
+fi
+
+# --- 2. Build the File Name Inclusion/Exclusion Logic ---
+FILE_NAME_CMD=()
+if (( ${#SEARCH_FILES[@]} > 0 )); then
+    # Create the primary file inclusion block: ( -name F1 -o -name F2 ... )
+    
+    local FILE_INCLUDE_TOKENS=()
+    local first_pattern=1
+    
+    # Iterate through patterns and add -name and -o appropriately
+    for file_pattern in "${SEARCH_FILES[@]}"; do
+        if (( ! first_pattern )); then
+            # Add -o (OR) before every pattern after the first one
+            FILE_INCLUDE_TOKENS+=("-o")
+        fi
+        
+        FILE_INCLUDE_TOKENS+=("-name" "$file_pattern")
+        first_pattern=0
+    done
+    
+    # Wrap the inclusion tokens in parentheses
+    local FILE_INCLUDE_BLOCK=("(" ${FILE_INCLUDE_TOKENS[@]} ")")
+
+    # Create the exclusion part: ! -name E1 -a ! -name E2 ...
+    local EXCLUDE_PATTERNS=()
+    for excluded_file in "${EXCLUDE_FILES[@]}"; do
+        EXCLUDE_PATTERNS+=("!" "-name" "$excluded_file")
+    done
+    
+    # Join the exclusion and inclusion parts with -a (AND), wrapped in outer parentheses
+#    FILE_NAME_CMD=("(" ${EXCLUDE_PATTERNS[@]} "-a" ${FILE_INCLUDE_BLOCK[@]} ")")
+	if (( ${#EXCLUDE_PATTERNS[@]} > 0 )); then
+		FILE_NAME_CMD=("(" ${EXCLUDE_PATTERNS[@]} "-a" ${FILE_INCLUDE_BLOCK[@]} ")")
+	else
+		FILE_NAME_CMD=("(" ${FILE_INCLUDE_BLOCK[@]} ")")
+	fi
+
+fi
+
+
+# --- 3. Build the Modifier Logic (Executables, Ownership) ---
+MODIFIER_CMD=()
+# Executable check
+if [[ "$ONLY_EXECUTABLES" =~ ^[yY]$ ]]; then
+    # Using the strictly POSIX-compliant octal mode with a leading minus sign.
+    # '-111' means: match if ALL of the specified bits (execute for user, group, and other) are set.
+    # However, to match the intent of 'executable by current user', we check the owner bit.
+    
+    # The most POSIX-compliant and universally supported way to check if the file
+    # is executable BY THE OWNER (u+x) is to check if the 00100 bit is set.
+    MODIFIER_CMD+=("-perm" "-100") 
+    # NOTE: The intent of ONLY_EXECUTABLES=y is usually "is it runnable by me?"
+    # -perm -100 checks if the user/owner execute bit is set.
+fi
+
+# Ownership check
+local CURRENT_USER="$(id -un)"
+if [[ "$NOT_OWNED_BY_ME" =~ ^[yY]$ ]]; then
+    # Exclude files owned by the current user
+    MODIFIER_CMD+=("!" "-user" "$CURRENT_USER")
+elif [[ "$ONLY_OWNED_BY_ME" =~ ^[yY]$ ]]; then
+    # Only include files owned by the current user
+    MODIFIER_CMD+=("-user" "$CURRENT_USER")
+fi
+
+# --- 4. Assemble and Execute the Full Command ---
+
+local FIND_COMMAND
+
+if [[ "$INCLUDE_DIRS" =~ ^[yY]$ ]]; then
+    # Build a command that prints directories AND files (tree-like mode)
+    FIND_COMMAND=(
+        find "$SEARCH_ROOT"
+        ${DIR_EXCLUDE_CMD[@]}
+        \( -type d -print -o -type f ${FILE_NAME_CMD[@]} ${MODIFIER_CMD[@]} ${FIND_EXEC[@]} \)
+    )
+else
+    # Original: only regular files
+    FIND_COMMAND=(
+        find "$SEARCH_ROOT"
+        ${DIR_EXCLUDE_CMD[@]}
+        -type f
+        ${FILE_NAME_CMD[@]}
+        ${MODIFIER_CMD[@]}
+        ${FIND_EXEC[@]}
+    )
+fi
+
+echo "--- Executing Command ---"
+echo "${(q)FIND_COMMAND[@]}"
+if (( ${#POSTPROCESS_CMD1[@]} > 0 )); then
+   echo "Post-processing with: ${(q)POSTPROCESS_CMD[@]}"
+fi
+echo
+
+if (( ${#POSTPROCESS_CMD1[@]} > 0 )); then
+    "${FIND_COMMAND[@]}" | "${POSTPROCESS_CMD1[@]}" | "${POSTPROCESS_CMD2[@]}" | "${POSTPROCESS_CMD3[@]}"
+else
+    "${FIND_COMMAND[@]}"
+fi

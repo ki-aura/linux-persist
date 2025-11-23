@@ -1,0 +1,36 @@
+#!/bin/zsh
+
+DIR="$HOME/.local/nanobackups"
+AGE_HOURS=120
+TMPFILE=$(mktemp)
+
+# Find files older than AGE_HOURS and save list
+find "$DIR" -type f -cmin +$((AGE_HOURS * 60)) > "$TMPFILE"
+
+# If no files, exit
+if [[ ! -s "$TMPFILE" ]]; then
+  echo "No files found older than $AGE_HOURS hours."
+  rm "$TMPFILE"
+  exit 0
+fi
+
+#echo "The following files will be deleted:"
+#cat "$TMPFILE"
+
+echo -n "Delete these files? (Y/n): "
+#read answer
+
+# Default to Y if empty
+[[ -z $answer ]] && answer=Y
+
+if [[ "$answer" == [Yy] ]]; then
+  # Use xargs to delete all at once
+  while IFS= read -r file; do
+    rm "$file"
+  done < "$TMPFILE"
+  echo "Files deleted."
+else
+  echo "Aborted. No files deleted."
+fi
+
+rm "$TMPFILE"

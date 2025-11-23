@@ -1,0 +1,10 @@
+if [[ -z "$SUDO_USER" ]]; then
+  echo "Please run this script with sudo."
+  exit 1
+fi
+
+echo HOMEBREW UPDATE
+sudo -u "$SUDO_USER" zsh -c 'brew update && brew upgrade && brew autoremove'
+
+echo LOCATE UPDATE
+/usr/libexec/locate.updatedb

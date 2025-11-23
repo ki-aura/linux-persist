@@ -1,0 +1,50 @@
+#!/bin/zsh
+
+if [ -z "$1" ]; then
+  echo "Usage: source ./p <prompt_number>"
+fi
+
+case "$1" in
+  0)
+	print -P -- "\n16-color palette:"
+	for i in {0..255}; do
+	  printf "%3d " $i
+	  print -P -n -- "%F{$i}██x:z%f "
+#	  (( (i+1) % 16 == 0 )) && echo
+	done
+	;;
+  1)
+    PROMPT=\
+$'%F{%(#.cyan.green)}┌──(%B%F{%(#.red.cyan)}%n%(#.💀.🍏)%m%b%F{%(#.cyan.green)})─'\
+$'[%F{%(#.red.cyan)}%(4~.%-1~/…/%2~.%3~)%F{%(#.cyan.green)}]\n'\
+$'└─%B%(#.%F{red}#.%F{cyan}$)%b%F{reset} '
+    export PROMPT
+    ;;
+  2)
+    PROMPT=$'%F{%(#.black.green)}┌──(%B%F{%(#.red.black)}%n%(#.💀 .🍏 )%m%b%F{%(#.black.green)})──[%F{%(#.red.black)}%D{%a %e %b}%F{%(#.black.green)}]──[%F{%(#.red.black)}%D{%H:%M.%S}%F{%(#.black.green)}]──[%B%F{%(#.red.black)}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.black.green)}]──\n└─%B%(#.%F{red}#.%F{black}$)%b%F{reset} '
+    export PROMPT
+    ;;
+  3)
+   PROMPT=$'%F{%(#.red.yellow)}(%D{%a %e %b} %D{%H:%M.%S}) %F{%(#.red.magenta)}[%(#.%B%n%b.%n)]%B%F{%(#.red.green)}%(4~.%-1~/>/%2~.%3~)%B%F{yellow}\n%% %F{reset}%b'
+
+    export PROMPT
+    ;;
+  4)
+  PROMPT=$'%F{%(#.black.green)}[%B%F{%(#.red.black)}%n%F{%(#.black.green)}@%F{%(#.red.black)}%m%b%F{%(#.black.green)}] [%B%F{%(#.red.black)}%D{%a %e %b}%b%F{%(#.black.green)}] [%F{%(#.red.black)}%B%D{%H:%M.%S}%b%F{%(#.black.green)}] [%B%F{%(#.red.black)}%(6~.%-1~/-/%4~.%5~)%b%F{%(#.black.green)}]\n%B%(#.%F{red}#.%F{black}$)%b%F{reset} '
+
+    export PROMPT
+    ;;
+
+	5)
+   PROMPT=\
+$'%F{%(#.red.magenta)}[%(#.%B!!%n!!%b.%n)] '\
+$'%F{%(#.red.yellow)}(%D{%a %e %b} %D{%H:%M.%S}) '\
+$'%F{%(#.red.cyan)}%(4~.%-1~/>/%2~.%3~)'\
+$'%B%F{yellow}\n%% %F{reset}%b'
+
+   export PROMPT
+	;;
+
+  *)
+    echo "no prompt of this numbner"
+esac

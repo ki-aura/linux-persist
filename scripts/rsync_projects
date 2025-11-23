@@ -1,0 +1,139 @@
+#!/bin/bash
+
+# a=archive v=verbose 
+# m=prune empty directories. They don't need to be fully empty, just have no matching files
+# add -n for dry run 
+# add --delete to sync full and remove old files  
+printf '~~~~~~~~~~~  backing up projects...  ~~~~~~~~~~~\n'
+
+rsync -av -m --include='*/' \
+	--include='*.py' --include='*.sh' --include='*.c' --include='*.h' --include='makefile' --include='pub*.txt' \
+	--exclude='*' \
+    "/Users/matt/Projects/gex" \
+    "/Users/matt/Projects/ggrep" \
+    "/Users/matt/Projects/gtree" \
+    "/Users/matt/Projects/gls" \
+    "/Users/matt/Projects/wip" \
+    "/Users/matt/My Drive/ProjectBak/"
+
+printf '\n===========  backing up bin...  ===========\n'
+ 
+rsync -av  \
+    "/Users/matt/bin" \
+    "/Users/matt/My Drive/ProjectBak/"
+
+# ==============================================================================
+# RSYNC CHEAT SHEET: Synchronization, Backup, and Common Options
+# ==============================================================================
+
+# General format:
+# rsync [OPTIONS] SOURCE [SOURCE...] DESTINATION
+
+# Note on Trailing Slashes:
+# SOURCE/  (WITH trailing slash) syncs the CONTENTS of the SOURCE directory.
+# SOURCE   (WITHOUT trailing slash) syncs the SOURCE directory ITSELF.
+
+# ------------------------------------------------------------------------------
+# 1. ESSENTIAL OPTIONS (The 'Archive' Mode)
+# ------------------------------------------------------------------------------
+
+# -a, --archive: Archive mode. The most common and recommended flag.
+#                It's a combination of -rlptgoD:
+#                -r (recursive)
+#                -l (copy symlinks as symlinks)
+#                -p (preserve permissions)
+#                -t (preserve modification times)
+#                -g (preserve group)
+#                -o (preserve owner)
+#                -D (preserve device and special files)
+# Example 1: Full recursive sync, preserving everything (local to local)
+# rsync -a /path/to/source/ /path/to/destination/
+
+# -v, --verbose: Increases verbosity, showing which files are transferred.
+# Example 2: Show transfer details for archive sync
+# rsync -av /path/to/source/ /path/to/destination/
+
+# -z, --compress: Compresses file data during the transfer. Best for network transfers.
+# Example 3: Transfer with compression over a network
+# rsync -avz /local/data/ user@remote:/backups/
+
+# -h, --human-readable: Outputs numbers in a human-readable format (e.g., 1.2M, 5G).
+# Example 4: View transfer sizes clearly
+# rsync -avh /path/to/source/ /path/to/destination/
+
+# -n, --dry-run: Performs a trial run with no changes made. CRUCIAL for testing.
+# Example 5: See exactly what would be changed without executing
+# rsync -avnh /path/to/source/ /path/to/destination/
+
+# -m, --prune-empty-dirs: Exclude empty directories from the transfer.
+# Example 15: Sync data but skip creating any empty directories at the destination.
+# rsync -avm /path/to/source/ /path/to/destination/
+
+# ------------------------------------------------------------------------------
+# 2. FILE/DIRECTORY HANDLING AND DELETION
+# ------------------------------------------------------------------------------
+
+# --delete: Delete extraneous files from the receiving side (DESTINATION) that are
+#           not present on the sending side (SOURCE).
+#           WARNING: Only use if you want the destination to be an exact mirror!
+# Example 6: Create an exact mirror of source (deleting files at destination)
+# rsync -av --delete /path/to/source/ /path/to/mirror/
+
+# --exclude='PATTERN': Exclude files matching a specific shell pattern.
+# Example 7: Exclude all .tmp files and the 'logs' directory
+# rsync -av --exclude='*.tmp' --exclude='logs/' /src/ /dest/
+
+# --include='PATTERN': Don't exclude files matching this pattern. Used with --exclude.
+# Example 8: Exclude all files EXCEPT .html files
+# rsync -av --include='*.html' --exclude='*' /src/ /dest/
+
+# --max-size='SIZE': Do not transfer files larger than the specified size.
+# Example 9: Skip files larger than 50 megabytes
+# rsync -av --max-size='50M' /src/ /dest/
+
+# ------------------------------------------------------------------------------
+# 3. ADVANCED BACKUP AND NETWORK OPTIONS
+# ------------------------------------------------------------------------------
+
+# -P: Combination of --partial and --progress.
+#     - Shows transfer progress.
+#     - Keeps partially transferred files for resuming (useful for unstable networks).
+# Example 10: Sync with progress bar, allowing job resumption
+# rsync -avP /large/file user@remote:/backups/
+
+# -S, --sparse: Handle sparse files efficiently (files with large blocks of zeroes).
+# Example 11: Used mainly for disk images or VMs
+# rsync -aS /vm/disk.img /backup/
+
+# -e, --rsh=COMMAND: Specify the remote shell to use (often 'ssh' is implied, but
+#                    used to specify options or another port).
+# Example 12: Connect to a remote host via SSH on a non-standard port (2222)
+# rsync -av -e 'ssh -p 2222' /local/ user@remote:/backups/
+
+# --inplace: Overwrite destination files directly without using a temporary file.
+#            Can be faster for local disks but may break the destination file if
+#            the transfer is interrupted. Use with caution.
+# Example 13: Overwrite files directly (typically used for very large files)
+# rsync -av --inplace /big/file /dest/
+
+# --checksum, -c: Skip files based on checksum, not just size and modification time.
+#                 Much slower, only use when file integrity is highly suspect.
+# Example 14: Force a full content comparison
+# rsync -avc /src/ /dest/
+
+# ==============================================================================
+# ------------------------------------------------------------------------------
+# NOTE ON --delete TIMING OPTIONS
+# ------------------------------------------------------------------------------
+# By default, --delete removes files in the destination *before* transferring new ones.
+# This is faster but riskier: if the sync is interrupted, some destination files may
+# be deleted before new versions arrive.
+#
+# Safer alternatives include:
+#   --delete-during : Deletes obsolete files as directories are processed.
+#   --delete-delay  : Defers deletions until the end of the transfer (recommended).
+#   --delete-after  : Performs deletions only after all transfers are complete.
+#
+# The "before" behavior remains the default for historical and performance reasons,
+# not safety. For backups or critical mirrors, prefer --delete-delay.
+

@@ -1,0 +1,287 @@
+#!/bin/zsh
+
+# Usage: ./find_exclude.zsh "PATTERN"
+# Example: ./find_exclude.zsh "*.txt"
+
+if [[ -z $1 ]]; then
+  echo "Usage: $0 <search_pattern>"
+  exit 1
+fi
+
+SEARCH_PATTERN="$1"
+SEARCH_ROOT="."   # adjust as needed
+
+# List of directories to exclude (relative to SEARCH_ROOT)
+EXCLUDE_DIRS=(Movies Cloud-Drive Desktop Downloads IDrive\ Downloads Music My\ Drive Library Documents Google\ Drive Pictures Public Virtual\ Machines.localized .Trash .cache)
+
+# build the exclusion array, only for existing dirs
+exclude_args=()
+for dir in "${EXCLUDE_DIRS[@]}"; do
+  [[ -d "$SEARCH_ROOT/$dir" ]] || continue
+#  exclude_args+=( -path "$SEARCH_ROOT/$dir" -prune -o )
+  exclude_args+=( -path "$dir" -prune -o )
+done
+
+# run find with the passed pattern
+#print $"\n\n!!!!! Count All";find "$SEARCH_ROOT" "${exclude_args[@]}"  -type f -name "$SEARCH_PATTERN" | wc -l
+print $"\n\n!!!!! Any File";find "$SEARCH_ROOT" "${exclude_args[@]}"  -type f -name "$SEARCH_PATTERN" -ls 
+#print $"\n\n!!!!! Executables";find "$SEARCH_ROOT" "${exclude_args[@]}"  -type f -perm +111 -name "$SEARCH_PATTERN" -ls
+#print $"\n\n!!!!! Not Mine";find "$SEARCH_ROOT" "${exclude_args[@]}"  -not -user $(whoami) -name "$SEARCH_PATTERN" -ls
+
+# --------------------------------------------------------------------------------
+# FIND CHEAT SHEET: Basic to Intermediate Usage (Non-Executable)
+# --------------------------------------------------------------------------------
+#
+# 1. BASIC SYNTAX & SEARCHES
+# --------------------------------------------------------------------------------
+# The basic structure is: find [starting-point] [expression]
+# The expression is composed of options, tests, and actions.
+#
+# Find all files/directories recursively from the current directory (.).
+# find .
+#
+# Find all files/directories recursively from a specific path (/etc).
+# find /etc
+#
+# Find all files/directories recursively from multiple starting points.
+# find /home /var
+#
+# --------------------------------------------------------------------------------
+# 2. FILE TYPE TESTS (-type)
+# --------------------------------------------------------------------------------
+#
+# Find only **regular files**.
+# find . -type f
+#
+# Find only **directories**.
+# find . -type d
+#
+# Find only **symbolic links** (symlinks).
+# find . -type l
+#
+# Find only **sockets**.
+# find . -type s
+#
+# --------------------------------------------------------------------------------
+# 3. NAME & PATH MATCHING
+# --------------------------------------------------------------------------------
+#
+# Find all files/directories whose name is exactly "README.md".
+# find . -name "README.md"
+#
+# Find all files/directories whose name ends in ".txt" (case sensitive).
+# find . -name "*.txt"
+#
+# Find all files/directories whose name ends in ".txt" (case insensitive).
+# NOTE: **-iname** is a common POSIX extension.
+# find . -iname "*.txt"
+#
+# Find all files whose **full path** contains "config".
+# NOTE: **-path** is a common POSIX extension.
+# find . -path "*config*"
+#
+# Find all files/directories whose name does NOT match "*.tmp".
+# find . -not -name "*.tmp"
+#
+# --------------------------------------------------------------------------------
+# 4. LOGICAL OPERATORS
+# --------------------------------------------------------------------------------
+#
+# **-a** (AND) is implied between tests. Finds files named "*.c" AND are regular files.
+# find . -name "*.c" -type f
+#
+# **-o** (OR) - Find files named "*.h" OR named "*.hpp".
+# find . \( -name "*.h" -o -name "*.hpp" \)
+#
+# Use escaped parentheses to group conditions for clear precedence.
+# Find regular files named "*.c" OR named "*.h".
+# find . -type f \( -name "*.c" -o -name "*.h" \)
+#
+# --------------------------------------------------------------------------------
+# 5. DEPTH CONTROL AND DIRECTORY EXCLUSION
+# --------------------------------------------------------------------------------
+#
+# **-maxdepth n**: Do not descend more than n levels below the starting point.
+# Find files only in the current directory (level 1).
+# find . -maxdepth 1 -type f
+#
+# **-mindepth n**: Do not apply any tests or actions at levels less than n.
+# Find all files/directories starting from level 3 (skipping levels 1 and 2).
+# find . -mindepth 3
+#
+# **-prune**: Prevents **find** from descending into the current directory path.
+# This is crucial for excluding large directories like 'node_modules' or '.git'.
+#
+# Find all files, but SKIP searching inside any directory named 'vendor'.
+# The directory 'vendor' itself is **printed** because -prune applies after printing.
+# find . -name vendor -prune -o -print
+#
+# Find all files, but SKIP searching inside any directory named 'vendor' **and don't print it**.
+# We use the AND operator before -prune, and ensure the -print action only runs for unpruned paths.
+# find . \( -name vendor -o -path '*/.git' \) -prune -o -print
+#
+# --------------------------------------------------------------------------------
+# 6. TIME & SIZE TESTS
+# --------------------------------------------------------------------------------
+#
+# **-mtime n**: Find files modified n *24-hour periods* ago.
+# Find files modified **within the last 7 days** (less than 7 days ago).
+# find . -mtime -7
+#
+# **-mmin n**: Find files modified **n minutes** ago (often more accurate/useful).
+# Find files modified in the **last 60 minutes**.
+# find . -mmin -60
+#
+# **-size n[cwbkMG]**: Find files by size.
+# Find files **larger than 10 Megabytes**.
+# find . -type f -size +10M
+#
+# --------------------------------------------------------------------------------
+# 7. USER/PERMISSIONS TESTS
+# --------------------------------------------------------------------------------
+#
+# Find files/directories owned by user "chris".
+# find . -user chris
+#
+# Find files/directories owned by group "devs".
+# find . -group devs
+#
+# Find files/directories with a specific numeric permission (e.g., 755).
+# find . -perm 755
+#
+# --------------------------------------------------------------------------------
+# 8. ACTIONS (-exec)
+# --------------------------------------------------------------------------------
+#
+# Print the full path (the default action).
+# find . -name "*.bak" -print
+#
+# Execute a command on each found file. **{}** is a placeholder, **\;** terminates.
+# Delete all files ending in ".bak".
+# find . -name "*.bak" -type f -exec rm {} \;
+#
+# Execute a command on multiple found files at once (more efficient).
+# **+** terminates the command block. This is a common POSIX extension.
+# Change permissions on all files ending in ".sh".
+# find . -name "*.sh" -type f -exec chmod 755 {} +
+
+
+# ==============================================================================
+# SED (Stream Editor) CHEAT SHEET: Search, Replace, and Common Options
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CORE SYNTAX AND OPTIONS
+# ------------------------------------------------------------------------------
+
+# General format:
+# sed [OPTIONS] 'ADDRESS /COMMAND/FLAGS' [FILE(s)]
+
+# -i: Edit files in place (modifies the original file).
+# -i.bak: Edits in place and creates a backup file with the .bak extension.
+# -n: Suppresses automatic printing of pattern space (needed for selective printing).
+# -e: Allows multiple commands to be specified on the command line.
+
+# ------------------------------------------------------------------------------
+# 2. SEARCH AND REPLACE (The 's' Command)
+# ------------------------------------------------------------------------------
+
+# The basic substitution syntax is: 's/PATTERN/REPLACEMENT/FLAGS'
+
+# Example 1: Basic global substitution (change all 'foo' to 'bar')
+# sed 's/foo/bar/g' filename
+
+# Example 2: Substitution only on the first match on each line
+# sed 's/foo/bar/' filename
+
+# Example 3: Case-insensitive substitution (using the 'i' flag)
+# sed 's/FOO/bar/gi' filename
+
+# Example 4: Using a different delimiter (useful when the pattern contains '/')
+# sed 's|/usr/local|/opt|g' filename
+# (Other common delimiters are #, :, and @)
+
+# Example 5: Limiting substitution to a specific match on a line (the 3rd match)
+# sed 's/foo/bar/3' filename
+
+# Example -----------------------------------------------------------------------
+# 3. BACK-REFERENCING (Capturing and Reusing Text)
+# ------------------------------------------------------------------------------
+
+# Use \( ... \) to capture a pattern, and \1, \2, etc., in the replacement.
+
+# Example 6: Swap the order of the first two words on a line
+# sed 's/\([A-Za-z]*\) \([A-Za-z]*\)/\2 \1/' filename
+# Input line: "Hello World" -> Output: "World Hello"
+
+# Example 7: Wrap a captured word in brackets, keeping existing text
+# sed 's/ERROR: \(.*\)/[Log] ERROR: \1/' filename
+# Input line: "ERROR: Disk full" -> Output: "[Log] ERROR: Disk full"
+
+# Example 8: Reusing the entire matched pattern using the '&' character
+# sed 's/WARNING/\[&\]/' filename
+# Input line: "WARNING: Low battery" -> Output: "[WARNING]: Low battery"
+
+# ------------------------------------------------------------------------------
+# 4. ADDRESSING (Limiting the Command Scope)
+# ------------------------------------------------------------------------------
+
+# Commands can be limited to specific lines using addresses (numbers or patterns).
+
+# Single Line Number: Apply command only to line 5
+# sed '5s/old/new/' filename
+
+# Range of Lines (5 to 10):
+# sed '5,10s/old/new/g' filename
+
+# From a pattern match to end-of-file ($):
+# sed '/START_LOG/,$/d' filename
+# (Deletes lines starting from the line matching 'START_LOG' to the end)
+
+# From line 5 to the line matching 'END_BLOCK':
+# sed '5,/END_BLOCK/s/^# //' filename
+# (Uncomments lines in the specified range)
+
+# Using ! for Negation (Apply command to lines that DO NOT match the address)
+# sed '/^#/!d' filename
+# (Deletes all lines that DO NOT start with #, effectively showing only comments)
+
+# ------------------------------------------------------------------------------
+# 5. COMMON COMMANDS (Beyond Search/Replace)
+# ------------------------------------------------------------------------------
+
+# d (Delete): Deletes the current line (prevents it from being printed).
+# Example 9: Delete empty lines
+# sed '/^$/d' filename
+
+# Example 10: Delete lines containing 'temp' (case-insensitive)
+# sed '/temp/Id' filename
+
+# p (Print): Prints the current line (often used with -n to print selectively).
+# Example 11: Print only lines containing 'Config'
+# sed -n '/Config/p' filename
+
+# a (Append): Appends text AFTER the addressed line.
+# Example 12: Add a newline after every line matching 'BEGIN'
+# sed '/BEGIN/a\--- New Section ---' filename
+
+# i (Insert): Inserts text BEFORE the addressed line.
+# Example 13: Insert a header before line 1
+# sed '1i\Project Header' filename
+
+# c (Change): Replaces the addressed line with new text.
+# Example 14: Replace all lines matching 'v1.0' with a new version string
+# sed '/v1.0/c\Version 2.0 (Stable)' filename
+
+# ------------------------------------------------------------------------------
+# 6. GNU EXTENSIONS (Often available in POSIX environments like Linux)
+# ------------------------------------------------------------------------------
+
+# I: Case-insensitive address matching (part of the pattern search).
+# Example 15: Delete lines matching 'error' regardless of case
+# sed '/error/Id' filename
+
+# s///gI: Case-insensitive substitution using the 'I' flag instead of 'i'.
+# Note: On some systems, the 'i' flag on the substitution command works for case-
+# insensitive search AND replace, as demonstrated in Example 3.
+# ==============================================================================

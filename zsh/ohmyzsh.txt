@@ -1,0 +1,26 @@
+sudo apt install zsh zsh-common
+chsh -s /usr/bin/zsh
+
+git clone https://github.com/zsh-users/zsh-syntax-highlighting \
+  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+git clone https://github.com/zsh-users/zsh-autosuggestions \
+  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+git clone https://github.com/ajeetdsouza/zoxide \
+  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zoxide
+
+
+.zshrc
+========
+
+
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*:descriptions' format '%B%d%b'
+
+
+plugins(git zoxide zsh-syntax-highlighting zsh-autosuggestions)
+
+

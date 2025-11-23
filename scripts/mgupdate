@@ -1,0 +1,32 @@
+#!/bin/zsh
+
+echo "+++ Update started: $(date) +++"
+
+LOGFILE="/Users/matt/mgupdate.log"
+MAX_LINES=5000
+
+if [ -f "$LOGFILE" ]; then
+    LINE_COUNT=$(wc -l < "$LOGFILE")
+    if [ "$LINE_COUNT" -gt "$MAX_LINES" ]; then
+        echo "Log trunc"
+        # Truncate in-place safely
+        tail -n "$MAX_LINES" "$LOGFILE" > "$LOGFILE.tmp" && \
+        cat "$LOGFILE.tmp" > "$LOGFILE"
+        rm "$LOGFILE.tmp"
+    fi
+fi
+
+source /Users/matt/.zshrc
+
+echo "Nano Cleanup"
+/Users/matt/bin/cleanup_nano_history
+
+echo
+echo "Home Brew Update"
+/opt/homebrew/bin/brew update && /opt/homebrew/bin/brew upgrade && /opt/homebrew/bin/brew autoremove
+
+echo
+echo "(sudo) Update Locate DB"
+sudo /usr/libexec/locate.updatedb 
+
+echo "--- Update FINISHED: $(date) ---"
