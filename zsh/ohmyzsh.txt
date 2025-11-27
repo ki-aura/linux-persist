@@ -1,19 +1,24 @@
 sudo apt install zsh zsh-common
 chsh -s /usr/bin/zsh
 
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
 git clone https://github.com/zsh-users/zsh-syntax-highlighting \
   ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
 git clone https://github.com/zsh-users/zsh-autosuggestions \
   ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 
-git clone https://github.com/ajeetdsouza/zoxide \
-  ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zoxide
+
+curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+
 
 
 .zshrc
 ========
 
+#at top of .zshrc
+export PATH="$HOME/.local/bin:$PATH"
 
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' menu select
@@ -21,6 +26,5 @@ zstyle ':completion:*' verbose yes
 zstyle ':completion:*:descriptions' format '%B%d%b'
 
 
-plugins(git zoxide zsh-syntax-highlighting zsh-autosuggestions)
-
+plugins=(git zoxide zsh-syntax-highlighting zsh-autosuggestions)
 
