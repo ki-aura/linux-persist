@@ -1,0 +1,38 @@
+# Set these for the kernel you’re working on
+KVER=6.12.1
+KDIR=~/kernel-build/linux-6.12.1
+
+cd "$KDIR"
+
+# Backup old config
+cp .config ".config.backup-$(date +%Y%m%d-%H%M%S)"
+
+# Edit config
+make menuconfig
+
+# Build kernel + modules
+make -j"$(nproc)"
+
+# Install modules
+sudo make modules_install
+
+# Install EFI-stub kernel image
+sudo cp arch/arm64/boot/vmlinuz.efi "/boot/vmlinuz-${KVER}"
+
+# Install System.map + config
+sudo cp System.map "/boot/System.map-${KVER}"
+sudo cp .config    "/boot/config-${KVER}"
+
+# Remove any raw vmlinux that might confuse GRUB
+if [ -f "/boot/vmlinux-${KVER}" ]; then
+    sudo rm "/boot/vmlinux-${KVER}"
+fi
+
+# Initramfs + GRUB
+sudo update-initramfs -u -k "${KVER}"
+sudo update-grub
+
+# Reboot & verify
+sudo reboot
+# then:
+#   uname -r

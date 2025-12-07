@@ -1,0 +1,58 @@
+# ============================================================
+# Linux Kernel Pre-Compile Setup (Ubuntu ARM / VM)
+# Everything required BEFORE the first: make -j$(nproc)
+# ============================================================
+
+# 1. Update package index
+sudo apt update
+
+# 2. Install ALL required build dependencies (including late-stage gawk)
+sudo apt install -y \
+  build-essential \
+  libncurses-dev \
+  bison \
+  flex \
+  libssl-dev \
+  libelf-dev \
+  dwarves \
+  bc \
+  gawk \
+  wget \
+  ca-certificates \
+  git
+
+# 3. Create workspace
+mkdir -p ~/kernel-build
+cd ~/kernel-build
+
+# 4. Download kernel source (example version)
+wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.1.tar.xz
+
+# 5. Extract kernel
+tar -xf linux-6.12.1.tar.xz
+cd linux-6.12.1
+
+# 6. Seed config from currently running Ubuntu kernel
+cp /boot/config-$(uname -r) .config
+
+# 7. Normalize old config for the new kernel version
+make olddefconfig
+
+# 8. Remove Ubuntu-specific certificate paths (CRITICAL FIX)
+sed -i \
+  -e 's|^CONFIG_SYSTEM_TRUSTED_KEYS=.*|CONFIG_SYSTEM_TRUSTED_KEYS=""|' \
+  -e 's|^CONFIG_SYSTEM_REVOCATION_KEYS=.*|CONFIG_SYSTEM_REVOCATION_KEYS=""|' \
+  .config
+
+# 9. Optional: interactive config editing
+make menuconfig
+
+# ============================================================
+# At THIS POINT the system is fully prepared for:
+#   make -j"$(nproc)"
+# ============================================================
+
+# 10. Optional later slimming path (used successfully):
+# cp .config .config.fullbackup
+# make localmodconfig
+# ============================================================
