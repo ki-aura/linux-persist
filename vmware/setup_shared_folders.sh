@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sudo apt update
-sudo apt install open-vm-tools open-vm-tools-desktop -y
 
 # --- Configuration ---
 MOUNT_POINT="/mnt/hgfs"
@@ -73,3 +71,4 @@ else
 fi
 
 echo "--- 🎉 Setup Complete ---"
+
