@@ -13,6 +13,8 @@ make menuconfig
 # Build kernel + modules
 make -j"$(nproc)"
 
+find . -name "*.o" | wc -l
+
 # Install modules
 sudo make modules_install
 

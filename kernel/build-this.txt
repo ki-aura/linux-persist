@@ -14,6 +14,8 @@ make menuconfig
 # 4. Rebuild the kernel and modules
 make -j"$(nproc)"
 
+find . -name "*.o" | wc -l
+
 # 5. Install modules for this kernel version (6.12.1)
 /usr/bin/sudo make modules_install
 

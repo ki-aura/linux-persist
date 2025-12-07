@@ -1,0 +1,53 @@
+# 1. Go to the kernel source tree
+cd ~/kernel-build/linux-6.12.1
+
+# 2. Backup current config (optional but recommended)
+cp .config .config.backup-$(date +%Y%m%d-%H%M%S)
+
+# 3. Edit options in the config (interactive)
+make menuconfig
+#   - Change whatever you want
+#   - Exit and save when done
+
+# ---- BUILD STAGE ----
+
+# 4. Rebuild the kernel and modules
+make -j"$(nproc)"
+
+# (Optional sanity check)
+find . -name "*.o" | wc -l
+
+# 5. Install modules for this kernel version (6.12.1-<whatever>)
+/usr/bin/sudo make modules_install
+
+# ---- INSTALL BOOTABLE KERNEL ----
+# *** On x86_64 with GRUB, just do: ***
+
+# 6. Install the kernel, System.map and config to /boot
+/usr/bin/sudo make install
+
+# This will typically:
+#   - Copy vmlinuz-6.12.1-...  -> /boot/
+#   - Copy System.map-6.12.1-...
+#   - Copy config-6.12.1-...
+#   - Often run: update-initramfs -c -k 6.12.1-...
+#   - Sometimes call: update-grub
+
+# ---- INITRAMFS & GRUB ----
+# (Safe to run explicitly even if make install already did it)
+
+# 7. Create/update initramfs for this kernel
+#    Use the exact version string from: make kernelrelease
+KVER=$(make kernelrelease)
+echo "Kernel release is: $KVER"
+/usr/bin/sudo update-initramfs -u -k "$KVER"
+
+# 8. Regenerate GRUB menu so it sees the new kernel
+/usr/bin/sudo update-grub
+
+# 9. Reboot and select the new kernel entry
+/usr/bin/sudo reboot
+
+# 10. After boot, verify the running kernel
+uname -r
+# should show: $KVER (e.g. 6.12.1-custom)
